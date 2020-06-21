@@ -10,12 +10,12 @@ fn main() {
     let secret2 = "secret2";
     let cookie1 = format!("anketasessid_FMFI_prod={}", secret1);
     let cookie2 = format!("cosign-proxy-anketa.uniba.sk={}", secret2);
-    let url = "https://anketa.uniba.sk/fmph/vysledky";
+    let url = "https://anketa.uniba.sk/fmph/vysledky/2018-2019-leto/predmet/1-INF-156--10";
     
-    hn_headlines(&url, &cookie1, &cookie2);
+    get_course(&url, &cookie1, &cookie2);
 }
 
-fn hn_headlines(url: &str, cookie1: &str, cookie2: &str) {
+fn get_course(url: &str, cookie1: &str, cookie2: &str) {
     use reqwest::blocking::Client;
     use reqwest::header;
     
@@ -34,13 +34,22 @@ fn hn_headlines(url: &str, cookie1: &str, cookie2: &str) {
     println!("{0}", body);
     
     let fragment = Html::parse_document(&body);
-    // parses based on a CSS selector
-    let stories = Selector::parse(".storylink").unwrap();
+    let stories1 = Selector::parse(r#"h2[class="fragment"]"#).unwrap();
+    let stories2 = Selector::parse(r#"li[data-cnt]"#).unwrap();
+    let stories3 = Selector::parse(r#"li[data-avg]"#).unwrap();
 
-    // iterate over elements matching our selector
-    for story in fragment.select(&stories) {
-        // grab the headline text and place into a vector
+    for story in fragment.select(&stories1) {
         let story_txt = story.text().collect::<Vec<_>>();
-        println!("{:?}", story_txt);
+        println!("{:?}", story_txt[1].trim());
+    }
+
+    for story in fragment.select(&stories2) {
+        let story_txt = story.text().collect::<Vec<_>>();
+        println!("{:?}", story_txt[0].trim());
+    }
+
+    for story in fragment.select(&stories3) {
+        let story_txt = story.text().collect::<Vec<_>>();
+        println!("{:?}", story_txt[0].trim());
     }
 }

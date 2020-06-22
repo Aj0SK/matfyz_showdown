@@ -2,15 +2,18 @@ extern crate reqwest;
 extern crate scraper;
 extern crate futures;
 
+pub mod secret;
+
+use crate::secret::SECRET1;
+use crate::secret::SECRET2;
+
 use scraper::{Html, Selector};
 use http::{HeaderValue, header::{COOKIE}};
 use futures::{stream, StreamExt};
 
 fn main() {
-    let secret1 = "secret1";
-    let secret2 = "secret2";
-    let cookie1 = format!("anketasessid_FMFI_prod={}", secret1);
-    let cookie2 = format!("cosign-proxy-anketa.uniba.sk={}", secret2);
+    let cookie1 = format!("anketasessid_FMFI_prod={}", SECRET1);
+    let cookie2 = format!("cosign-proxy-anketa.uniba.sk={}", SECRET2);
     let url = "https://anketa.uniba.sk/fmph/vysledky/2018-2019-leto/predmet/1-INF-156--10";
     
     //get_course(&url, &cookie1, &cookie2);
@@ -18,11 +21,11 @@ fn main() {
     let mut urls = vec![];
     let n = 2;
     for i in 0..n {
-        urls.push("https://anketa.uniba.sk/fmph/vysledky");
+        urls.push(url);
     }
     let bodies: Vec<String> = helper(&urls, &cookie1, &cookie2);
     for i in bodies {
-        println!("{}", i);
+        parse_course(&i);
     }
 }
 
@@ -68,24 +71,8 @@ async fn helper(urls: &[& str], cookie1: &str, cookie2: &str) -> std::vec::Vec<s
     return results;
 }
 
-/*fn get_course(url: &str, cookie1: &str, cookie2: &str) {
-    use reqwest::blocking::Client;
-    use reqwest::header;
-    
-    let mut headers = header::HeaderMap::new();
-    headers.insert(COOKIE, HeaderValue::from_str(&cookie1).unwrap());
-    headers.insert(COOKIE, HeaderValue::from_str(&cookie2).unwrap());
-    
-    let client = Client::new();
-    let res = client.get(url)
-    .headers(headers)
-    .send()
-    .unwrap();
+fn parse_course(body: &str) {
 
-    let body = res.text().unwrap();
-
-    println!("{0}", body);
-    
     let fragment = Html::parse_document(&body);
     let stories1 = Selector::parse(r#"h2[class="fragment"]"#).unwrap();
     let stories2 = Selector::parse(r#"li[data-cnt]"#).unwrap();
@@ -105,4 +92,24 @@ async fn helper(urls: &[& str], cookie1: &str, cookie2: &str) -> std::vec::Vec<s
         let story_txt = story.text().collect::<Vec<_>>();
         println!("{:?}", story_txt[0].trim());
     }
+
+}
+
+/*fn get_course(url: &str, cookie1: &str, cookie2: &str) {
+    use reqwest::blocking::Client;
+    use reqwest::header;
+
+    let mut headers = header::HeaderMap::new();
+    headers.insert(COOKIE, HeaderValue::from_str(&cookie1).unwrap());
+    headers.insert(COOKIE, HeaderValue::from_str(&cookie2).unwrap());
+
+    let client = Client::new();
+    let res = client.get(url)
+    .headers(headers)
+    .send()
+    .unwrap();
+
+    let body = res.text().unwrap();
+
+    parse_course(&body);
 }*/

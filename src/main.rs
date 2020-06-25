@@ -1,15 +1,15 @@
+extern crate futures;
 extern crate reqwest;
 extern crate scraper;
-extern crate futures;
 
 pub mod secret;
 
 use crate::secret::SECRET1;
 use crate::secret::SECRET2;
 
-use scraper::{Html, Selector};
-use http::{HeaderValue, header::{COOKIE}};
 use futures::{stream, StreamExt};
+use http::{header::COOKIE, HeaderValue};
+use scraper::{Html, Selector};
 
 use std::collections::HashMap;
 use std::fs;
@@ -26,14 +26,18 @@ fn main() {
 
     //get_course(&url, &cookie1, &cookie2);
 
-    let main_page : Vec<String> =  vec![url.to_string()];
+    let main_page: Vec<String> = vec![url.to_string()];
     let main_page_body: Vec<String> = helper(main_page, &cookie1, &cookie2);
     let year_links: Vec<String> = parse_main_page(&main_page_body[0]);
 
-    let year_links_abs: Vec<String> = year_links.clone().iter().map(|x| format!("{}/{}/predmety/", url, x)).collect();
+    let year_links_abs: Vec<String> = year_links
+        .clone()
+        .iter()
+        .map(|x| format!("{}/{}/predmety/", url, x))
+        .collect();
     let year_bodies: Vec<String> = helper(year_links_abs.clone(), &cookie1, &cookie2);
 
-    let mut mymap : HashMap<String, Vec<String>> = HashMap::new();
+    let mut mymap: HashMap<String, Vec<String>> = HashMap::new();
 
     for i in 0..year_links_abs.len() {
         let x = parse_year(&year_bodies[i]);
@@ -76,14 +80,14 @@ fn main() {
             Err(why) => panic!("couldn't create {}: {}", path, why),
             Ok(file) => file,
         };
-        file.write_all(&requested_course_bodies[i].as_bytes()).unwrap();
+        file.write_all(&requested_course_bodies[i].as_bytes())
+            .unwrap();
     }
 
     println!("\nCounter is {}", counter);
 }
 
 fn parse_year(body: &str) -> Vec<String> {
-
     let fragment = Html::parse_document(&body);
     let stories1 = Selector::parse(r#"#content>ul>li>a"#).unwrap();
 
@@ -94,14 +98,13 @@ fn parse_year(body: &str) -> Vec<String> {
         //println!("{}", x.to_string());
         let y = x.to_string().rfind("/predmet/").unwrap_or(0);
         //println!("{}", &x.to_string()[y+9..]);
-        results.push(x.to_string()[y+9..].to_string());
+        results.push(x.to_string()[y + 9..].to_string());
     }
 
     return results;
 }
 
 fn parse_main_page(body: &str) -> Vec<String> {
-
     let fragment = Html::parse_document(&body);
     let stories1 = Selector::parse(r#"a[class="menu-level-0 leaf"]"#).unwrap();
     let mut results: Vec<String> = vec![];
@@ -109,18 +112,21 @@ fn parse_main_page(body: &str) -> Vec<String> {
     for story in fragment.select(&stories1) {
         let x = story.value().attr("href").unwrap();
         let y = x.to_string().rfind("/vysledky/").unwrap_or(0);
-        results.push(x.to_string()[y+10..].to_string());
+        results.push(x.to_string()[y + 10..].to_string());
     }
 
     return results;
 }
 
 #[tokio::main]
-async fn helper(urls: Vec<String>, cookie1: &str, cookie2: &str) -> std::vec::Vec<std::string::String> {
-
-    use reqwest::Client;
+async fn helper(
+    urls: Vec<String>,
+    cookie1: &str,
+    cookie2: &str,
+) -> std::vec::Vec<std::string::String> {
     use reqwest::header;
-    
+    use reqwest::Client;
+
     let client = Client::new();
 
     let bodies = stream::iter(urls)
@@ -129,30 +135,25 @@ async fn helper(urls: Vec<String>, cookie1: &str, cookie2: &str) -> std::vec::Ve
             let mut headers = header::HeaderMap::new();
             headers.insert(COOKIE, HeaderValue::from_str(&cookie1).unwrap());
             headers.insert(COOKIE, HeaderValue::from_str(&cookie2).unwrap());
-                
+
             async move {
-                let resp = client.get(&url)
-                .headers(headers)
-                .send()
-                .await?;
+                let resp = client.get(&url).headers(headers).send().await?;
                 resp.text().await
             }
-        }).buffer_unordered(16);
+        })
+        .buffer_unordered(16);
 
     let mut results: Vec<String> = vec![];
-   
+
     let _work = bodies
-    .for_each(|b| {
-        match b {
-            Ok(b) => {
-                results.push(b)
-            },
-            Err(e) => eprintln!("Error: {}", e),
-        }
-        async { () }
-    })
-    .await;
-    
+        .for_each(|b| {
+            match b {
+                Ok(b) => results.push(b),
+                Err(e) => eprintln!("Error: {}", e),
+            }
+            async { () }
+        })
+        .await;
 
     return results;
 }

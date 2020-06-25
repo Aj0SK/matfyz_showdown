@@ -1,15 +1,14 @@
-extern crate futures;
-extern crate reqwest;
-extern crate scraper;
-
+pub mod parse_html;
+pub mod request;
 pub mod secret;
+
+use crate::request::helper;
+
+use crate::parse_html::parse_main_page;
+use crate::parse_html::parse_year;
 
 use crate::secret::SECRET1;
 use crate::secret::SECRET2;
-
-use futures::{stream, StreamExt};
-use http::{header::COOKIE, HeaderValue};
-use scraper::{Html, Selector};
 
 use std::collections::HashMap;
 use std::fs;
@@ -40,8 +39,7 @@ fn main() {
     let mut mymap: HashMap<String, Vec<String>> = HashMap::new();
 
     for i in 0..year_links_abs.len() {
-        let x = parse_year(&year_bodies[i]);
-        for j in x {
+        for j in parse_year(&year_bodies[i]) {
             mymap.entry(j).or_default().push(year_links[i].clone());
         }
     }
@@ -86,117 +84,3 @@ fn main() {
 
     println!("\nCounter is {}", counter);
 }
-
-fn parse_year(body: &str) -> Vec<String> {
-    let fragment = Html::parse_document(&body);
-    let stories1 = Selector::parse(r#"#content>ul>li>a"#).unwrap();
-
-    let mut results: Vec<String> = vec![];
-
-    for story in fragment.select(&stories1) {
-        let x = story.value().attr("href").unwrap();
-        //println!("{}", x.to_string());
-        let y = x.to_string().rfind("/predmet/").unwrap_or(0);
-        //println!("{}", &x.to_string()[y+9..]);
-        results.push(x.to_string()[y + 9..].to_string());
-    }
-
-    return results;
-}
-
-fn parse_main_page(body: &str) -> Vec<String> {
-    let fragment = Html::parse_document(&body);
-    let stories1 = Selector::parse(r#"a[class="menu-level-0 leaf"]"#).unwrap();
-    let mut results: Vec<String> = vec![];
-
-    for story in fragment.select(&stories1) {
-        let x = story.value().attr("href").unwrap();
-        let y = x.to_string().rfind("/vysledky/").unwrap_or(0);
-        results.push(x.to_string()[y + 10..].to_string());
-    }
-
-    return results;
-}
-
-#[tokio::main]
-async fn helper(
-    urls: Vec<String>,
-    cookie1: &str,
-    cookie2: &str,
-) -> std::vec::Vec<std::string::String> {
-    use reqwest::header;
-    use reqwest::Client;
-
-    let client = Client::new();
-
-    let bodies = stream::iter(urls)
-        .map(|url| {
-            let client = &client;
-            let mut headers = header::HeaderMap::new();
-            headers.insert(COOKIE, HeaderValue::from_str(&cookie1).unwrap());
-            headers.insert(COOKIE, HeaderValue::from_str(&cookie2).unwrap());
-
-            async move {
-                let resp = client.get(&url).headers(headers).send().await?;
-                resp.text().await
-            }
-        })
-        .buffer_unordered(16);
-
-    let mut results: Vec<String> = vec![];
-
-    let _work = bodies
-        .for_each(|b| {
-            match b {
-                Ok(b) => results.push(b),
-                Err(e) => eprintln!("Error: {}", e),
-            }
-            async { () }
-        })
-        .await;
-
-    return results;
-}
-
-/*fn parse_course(body: &str) {
-
-    let fragment = Html::parse_document(&body);
-    let stories1 = Selector::parse(r#"h2[class="fragment"]"#).unwrap();
-    let stories2 = Selector::parse(r#"li[data-cnt]"#).unwrap();
-    let stories3 = Selector::parse(r#"li[data-avg]"#).unwrap();
-
-    for story in fragment.select(&stories1) {
-        let story_txt = story.text().collect::<Vec<_>>();
-        println!("{:?}", story_txt[1].trim());
-    }
-
-    for story in fragment.select(&stories2) {
-        let story_txt = story.text().collect::<Vec<_>>();
-        println!("{:?}", story_txt[0].trim());
-    }
-
-    for story in fragment.select(&stories3) {
-        let story_txt = story.text().collect::<Vec<_>>();
-        println!("{:?}", story_txt[0].trim());
-    }
-
-}*/
-
-/*fn get_course(url: &str, cookie1: &str, cookie2: &str) {
-    use reqwest::blocking::Client;
-    use reqwest::header;
-
-    let mut headers = header::HeaderMap::new();
-    headers.insert(COOKIE, HeaderValue::from_str(&cookie1).unwrap());
-    headers.insert(COOKIE, HeaderValue::from_str(&cookie2).unwrap());
-
-    let client = Client::new();
-    let res = client.get(url)
-    .headers(headers)
-    .send()
-    .unwrap();
-
-    let body = res.text().unwrap();
-
-    parse_course(&body);
-}*/

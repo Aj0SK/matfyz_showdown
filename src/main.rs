@@ -18,16 +18,17 @@ use std::io::prelude::*;
 use std::path::Path;
 
 const MAX_COURSES: i32 = 10;
+const DATA_PATH: &str = "./data";
 
 fn main() {
-    if Path::new("./data").exists() {
+    if Path::new(DATA_PATH).exists() {
         println!("Reuse old data.");
     } else {
         println!("Create new data.");
         prepare_data();
     }
 
-    let data_paths = fs::read_dir("./data").unwrap();
+    let data_paths = fs::read_dir(DATA_PATH).unwrap();
 
     let mut parsed_bodies: Vec<String> = Vec::new();
     let mut parsed_years: Vec<String> = Vec::new();
@@ -75,9 +76,6 @@ fn prepare_data() {
     let cookie1 = format!("anketasessid_FMFI_prod={}", SECRET1);
     let cookie2 = format!("cosign-proxy-anketa.uniba.sk={}", SECRET2);
     let url = "https://anketa.uniba.sk/fmph/vysledky";
-    //let base = "https://anketa.uniba.sk";
-
-    //get_course(&url, &cookie1, &cookie2);
 
     let main_page: Vec<String> = vec![url.to_string()];
     let main_page_body: Vec<String> = helper(main_page, &cookie1, &cookie2);
@@ -90,7 +88,7 @@ fn prepare_data() {
         .collect();
     let year_bodies: Vec<String> = helper(year_links_abs.clone(), &cookie1, &cookie2);
 
-    fs::create_dir_all("./data").unwrap();
+    fs::create_dir_all(DATA_PATH).unwrap();
 
     let mut parsed_urls: Vec<String> = Vec::new();
     let mut parsed_years: Vec<String> = Vec::new();
@@ -116,7 +114,7 @@ fn prepare_data() {
     let requested_course_bodies: Vec<String> = helper(parsed_urls, &cookie1, &cookie2);
 
     for i in 0..requested_course_bodies.len() {
-        let path = format!("./data/{}&{}", parsed_years[i], parsed_courses[i]);
+        let path = format!("{}/{}&{}", DATA_PATH, parsed_years[i], parsed_courses[i]);
         let mut file = match File::create(&path) {
             Err(why) => panic!("couldn't create {}: {}", path, why),
             Ok(file) => file,

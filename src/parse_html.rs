@@ -16,7 +16,7 @@ pub fn parse_year(body: &str) -> Vec<String> {
         results.push(x.to_string()[y + 9..].to_string());
     }
 
-    return results;
+    results
 }
 
 pub fn parse_main_page(body: &str) -> Vec<String> {
@@ -30,11 +30,10 @@ pub fn parse_main_page(body: &str) -> Vec<String> {
         results.push(x.to_string()[y + 10..].to_string());
     }
 
-    return results;
+    results
 }
 
-/*pub fn parse_course(body: &str) {
-
+pub fn parse_course(body: &str) {
     let fragment = Html::parse_document(&body);
     let stories1 = Selector::parse(r#"h2[class="fragment"]"#).unwrap();
     let stories2 = Selector::parse(r#"li[data-cnt]"#).unwrap();
@@ -54,5 +53,4 @@ pub fn parse_main_page(body: &str) -> Vec<String> {
         let story_txt = story.text().collect::<Vec<_>>();
         println!("{:?}", story_txt[0].trim());
     }
-
-}*/
+}

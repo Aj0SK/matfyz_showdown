@@ -4,8 +4,7 @@ pub mod secret;
 
 use crate::request::helper;
 
-use crate::parse_html::parse_main_page;
-use crate::parse_html::parse_year;
+use crate::parse_html::{parse_course, parse_main_page, parse_year};
 
 use crate::secret::SECRET1;
 use crate::secret::SECRET2;
@@ -17,7 +16,7 @@ use std::io::prelude::*;
 
 use std::path::Path;
 
-const MAX_COURSES: i32 = 10;
+const MAX_COURSES: i32 = 100;
 const DATA_PATH: &str = "./data";
 
 fn main() {
@@ -36,7 +35,7 @@ fn main() {
 
     for path in data_paths {
         let path_str = path.unwrap().path().into_os_string().into_string().unwrap();
-        let vec: Vec<&str> = path_str.split("&").collect();
+        let vec: Vec<&str> = path_str.split('&').collect();
 
         assert_eq!(vec.len(), 2);
 
@@ -52,6 +51,12 @@ fn main() {
             .read_to_string(&mut contents)
             .unwrap();
         parsed_bodies.push(contents.clone());
+    }
+
+    for i in parsed_bodies.iter() {
+        parse_course(&i);
+        //println!("{}", i);
+        break;
     }
 
     println!("Len of parsed is {}", parsed_bodies.len());
@@ -82,7 +87,6 @@ fn prepare_data() {
     let year_links: Vec<String> = parse_main_page(&main_page_body[0]);
 
     let year_links_abs: Vec<String> = year_links
-        .clone()
         .iter()
         .map(|x| format!("{}/{}/predmety/", url, x))
         .collect();

@@ -41,5 +41,5 @@ pub async fn helper(
         })
         .await;
 
-    return results;
+    results
 }
